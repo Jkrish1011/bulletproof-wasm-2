@@ -1,8 +1,10 @@
+mod cochilli;
 mod utils;
 
 use wasm_bindgen::prelude::*;
 
 use bulletproofs::{BulletproofGens, PedersenGens, RangeProof};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 
@@ -14,6 +16,12 @@ extern "C" {
 #[wasm_bindgen]
 pub fn greet() {
     alert("Hello, bulletproof-wasm-2!");
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ProofData {
+    proof: Vec<u8>,
+    committed_value: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -63,10 +71,8 @@ impl ProofSystem {
         let proof = RangeProof::from_bytes(&proof_data.proof)
             .map_err(|e| JsValue::from_str(&format!("Invalid proof bytes: {}", e)))?;
 
-        let committed_value = curve25519_dalek::ristretto::CompressedRistretto::from_slice(
-            &proof_data.committed_value,
-        )
-        .unwrap();
+        let committed_value: CompressedRistretto =
+            CompressedRistretto::from_slice(&proof_data.committed_value).unwrap();
 
         let mut verifier_transcript = Transcript::new(b"range_proof");
 
@@ -83,12 +89,6 @@ impl ProofSystem {
 
         Ok(true)
     }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct ProofData {
-    proof: Vec<u8>,
-    committed_value: Vec<u8>,
 }
 
 #[cfg(test)]
